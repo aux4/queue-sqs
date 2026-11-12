@@ -1,7 +1,7 @@
 {
   "scope": "aux4",
   "name": "queue-sqs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Amazon SQS provider plugin for aux4/queue's work-queue mode (--storage sqs)",
   "license": "Apache-2.0",
   "tags": [
