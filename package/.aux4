@@ -286,7 +286,8 @@
             "set:id=${response.MessageId}",
             "set:receiptHandle=${response.ReceiptHandle}",
             "set:msgGroup=${response.Attributes.MessageGroupId}",
-            "set:attempts=${response.Attributes.ApproximateReceiveCount}",
+            "set:receiveCount=${response.Attributes.ApproximateReceiveCount}",
+            "set:attempts=!node -e \"console.log(Math.max(0, Number('${receiveCount}') - 1))\"",
             "set:msgBody=${response.Body}",
             "if(id==) && echo '{}' && exit 4 || true",
             "log:{\"id\":\"${id}\",\"leaseId\":\"${receiptHandle}\",\"group\":\"${msgGroup}\",\"attempts\":${attempts},\"body\":${msgBody}}"

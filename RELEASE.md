@@ -1,5 +1,17 @@
 # Release Notes
 
+## 0.1.2 (unreleased)
+
+- Fixed a real bug: `lease`'s `attempts` field reported SQS's raw (1-indexed)
+  `ApproximateReceiveCount` directly, while `aux4/queue`'s memory and
+  repository providers report a 0-indexed "attempts already made" count.
+  `aux4/bot`'s shared `isFinalAttempt` formula (`attempts + 1 >= maxAttempts`)
+  assumes the 0-indexed convention, so on `sqs` it fired one delivery early
+  and then AGAIN on the next delivery before SQS's own redrive policy moved
+  the message to its dead-letter queue — a `failureMessage` could be sent
+  twice for the same event. `lease` now reports `attempts =
+  ApproximateReceiveCount - 1`, matching every other provider.
+
 ## 0.1.0 (unreleased)
 
 - Renamed the dispatch flag: `aux4/queue` now selects this plugin with `--provider sqs`; the

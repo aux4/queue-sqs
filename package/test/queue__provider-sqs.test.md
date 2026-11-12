@@ -49,7 +49,7 @@ aux4 queue lease --name wq --provider sqs --visibility 30 | jq '{attempts, body}
 
 ````expect:json
 {
-  "attempts": 1,
+  "attempts": 0,
   "body": {
     "task": "hello"
   }
@@ -113,7 +113,7 @@ aux4 queue lease --name wq --provider sqs --visibility 30 | jq '.attempts'
 ````
 
 ````expect
-2
+1
 ````
 
 ### should extend a lease with renew, without losing it
