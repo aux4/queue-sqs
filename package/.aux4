@@ -1,0 +1,541 @@
+{
+  "scope": "aux4",
+  "name": "queue-sqs",
+  "version": "0.1.0",
+  "description": "Amazon SQS provider plugin for aux4/queue's work-queue mode (--storage sqs)",
+  "license": "Apache-2.0",
+  "tags": [
+    "aux4",
+    "queue",
+    "sqs",
+    "aws",
+    "messaging",
+    "plugin"
+  ],
+  "dependencies": [
+    "aux4/queue"
+  ],
+  "system": [
+    [
+      "test:aws --version",
+      "brew:awscli",
+      "apt:awscli",
+      "dnf:awscli"
+    ],
+    [
+      "test:uuidgen",
+      "brew:util-linux",
+      "apt:uuid-runtime",
+      "dnf:util-linux",
+      "apk:util-linux"
+    ]
+  ],
+  "profiles": [
+    {
+      "name": "queue",
+      "commands": [
+        {
+          "name": "sqs",
+          "execute": [
+            "profile:queue:sqs"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage dispatch target (internal)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "queue:sqs",
+      "commands": [
+        {
+          "name": "start",
+          "execute": [
+            "log:sqs storage ready; no server process needed (uses the AWS CLI's own credentials/region/endpoint resolution, including AWS_ENDPOINT_URL for local testing)"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: validate readiness (no server process)",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "queues",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stop",
+          "execute": [
+            "log:sqs storage: nothing to stop"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: no-op",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              }
+            ]
+          }
+        },
+        {
+          "name": "create",
+          "execute": [
+            "nout:if(maxAttempts==0) && echo 1000 || echo value(maxAttempts)",
+            "set:maxReceiveCount=${response}",
+            "json:aws sqs create-queue --queue-name value(name)-dlq.fifo --attributes '{\"FifoQueue\":\"true\",\"ContentBasedDeduplication\":\"true\"}' --output json",
+            "set:dlqUrl=${response.QueueUrl}",
+            "json:aws sqs get-queue-attributes --queue-url value(dlqUrl) --attribute-names QueueArn --output json",
+            "set:dlqArn=${response.Attributes.QueueArn}",
+            "set:attributesJson={\"FifoQueue\":\"true\",\"ContentBasedDeduplication\":\"true\",\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"${dlqArn}\\\",\\\"maxReceiveCount\\\":\\\"${maxReceiveCount}\\\"}\"}",
+            "aws sqs create-queue --queue-name value(name).fifo --attributes value(attributesJson) --output json"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: create a durable work queue and its dead-letter queue",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "ws",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "webhook",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "header",
+                "text": "Unused (sqs storage)",
+                "default": "",
+                "multiple": true
+              },
+              {
+                "name": "workQueue",
+                "text": "Unused (sqs storage); every sqs-backed queue is always a durable work queue",
+                "default": "false"
+              },
+              {
+                "name": "maxAttempts",
+                "text": "Maximum delivery attempts before dead-lettering. 0 (default) means unlimited, which SQS approximates with its own maximum of 1000",
+                "default": "0"
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "delete",
+          "execute": [
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "nout:aws sqs delete-queue --queue-url value(queueUrl)",
+            "json:aws sqs get-queue-url --queue-name value(name)-dlq.fifo --output json",
+            "set:dlqUrl=${response.QueueUrl}",
+            "aws sqs delete-queue --queue-url value(dlqUrl)"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: delete a queue and its dead-letter queue",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "list",
+          "execute": [
+            "aws sqs list-queues --output json"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: list all queues, including dead-letter queues",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "send",
+          "execute": [
+            "nout:stdin:cat",
+            "set:body=${response}",
+            "nout:uuidgen",
+            "set:dedupId=${response}",
+            "nout:if(group==) && uuidgen || echo value(group)",
+            "set:groupId=${response}",
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "aws sqs send-message --queue-url value(queueUrl) --message-body value(body) --message-group-id value(groupId) --message-deduplication-id value(dedupId) --output json"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: send a message (from stdin) to a queue",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "group",
+                "text": "Group key for one-at-a-time delivery. When omitted, a random group is used per message so messages are delivered in parallel",
+                "default": ""
+              },
+              {
+                "name": "id",
+                "text": "Unused (sqs storage); SQS assigns its own MessageId",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lease",
+          "execute": [
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "json:aws sqs receive-message --queue-url value(queueUrl) --max-number-of-messages 1 --visibility-timeout value(visibility) --attribute-names All --query 'Messages[0]' --output json",
+            "set:id=${response.MessageId}",
+            "set:receiptHandle=${response.ReceiptHandle}",
+            "set:msgGroup=${response.Attributes.MessageGroupId}",
+            "set:attempts=${response.Attributes.ApproximateReceiveCount}",
+            "set:msgBody=${response.Body}",
+            "if(id==) && echo '{}' && exit 4 || true",
+            "log:{\"id\":\"${id}\",\"leaseId\":\"${receiptHandle}\",\"group\":\"${msgGroup}\",\"attempts\":${attempts},\"body\":${msgBody}}"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: lease the next eligible message",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "visibility",
+                "text": "Visibility timeout in seconds",
+                "default": "30"
+              },
+              {
+                "name": "owner",
+                "text": "Unused (sqs storage); SQS has no native concept of a lease owner beyond its receipt handle",
+                "default": ""
+              },
+              {
+                "name": "maxAttempts",
+                "text": "Unused (sqs storage); already enforced by the queue's own SQS redrive policy, set at create time",
+                "default": "0"
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ack",
+          "execute": [
+            "set:receiptHandle=nvl(leaseId, id)",
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "aws sqs delete-message --queue-url value(queueUrl) --receipt-handle value(receiptHandle)"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: delete a completed message",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "leaseId",
+                "text": "The leaseId returned by 'queue lease' (the SQS receipt handle)",
+                "default": ""
+              },
+              {
+                "name": "id",
+                "text": "Alias for leaseId",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nack",
+          "execute": [
+            "set:receiptHandle=nvl(leaseId, id)",
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "aws sqs change-message-visibility --queue-url value(queueUrl) --receipt-handle value(receiptHandle) --visibility-timeout 0"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: release a leased message for immediate redelivery. SQS bumps the receive count automatically and moves the message to the dead-letter queue on its own once maxAttempts (set at create time) is reached",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "leaseId",
+                "text": "The leaseId returned by 'queue lease' (the SQS receipt handle)",
+                "default": ""
+              },
+              {
+                "name": "id",
+                "text": "Alias for leaseId",
+                "default": ""
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "renew",
+          "execute": [
+            "set:receiptHandle=nvl(leaseId, id)",
+            "json:aws sqs get-queue-url --queue-name value(name).fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "aws sqs change-message-visibility --queue-url value(queueUrl) --receipt-handle value(receiptHandle) --visibility-timeout value(visibility)"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: extend the visibility timeout of a message that is still being worked on",
+            "variables": [
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "leaseId",
+                "text": "The leaseId returned by 'queue lease' (the SQS receipt handle)",
+                "default": ""
+              },
+              {
+                "name": "id",
+                "text": "Alias for leaseId",
+                "default": ""
+              },
+              {
+                "name": "visibility",
+                "text": "New visibility timeout in seconds, counted from now",
+                "default": "30"
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "dlq",
+          "execute": [
+            "json:aws sqs get-queue-url --queue-name value(name)-dlq.fifo --output json",
+            "set:queueUrl=${response.QueueUrl}",
+            "json:aws sqs receive-message --queue-url value(queueUrl) --max-number-of-messages 10 --visibility-timeout 0 --attribute-names All --query 'Messages || `[]`' --output json",
+            "each:aux4 queue sqs dlq-item --id value(item.MessageId) --attempts value(item.Attributes.ApproximateReceiveCount) --group value(item.Attributes.MessageGroupId) --body value(item.Body)"
+          ],
+          "private": true,
+          "help": {
+            "text": "sqs storage: list up to 10 dead-letter messages, one JSON object per line, without removing them. SQS has no API to browse a queue's full contents, so a very large dead-letter queue may need more than one call to see everything",
+            "variables": [
+              {
+                "name": "port",
+                "text": "Unused (sqs storage)",
+                "default": "8420"
+              },
+              {
+                "name": "token",
+                "text": "Unused (sqs storage)",
+                "default": ""
+              },
+              {
+                "name": "name",
+                "text": "Queue name",
+                "default": ""
+              },
+              {
+                "name": "maxAttempts",
+                "text": "Unused (sqs storage); dead-lettering is enforced by the queue's own SQS redrive policy, set at create time",
+                "default": "0"
+              },
+              {
+                "name": "db",
+                "text": "Unused (sqs storage)",
+                "default": ".queue.db"
+              }
+            ]
+          }
+        },
+        {
+          "name": "dlq-item",
+          "execute": [
+            "log:{\"id\":\"${id}\",\"attempts\":${attempts},\"group\":\"${group}\",\"body\":${body}}"
+          ],
+          "private": true,
+          "help": {
+            "text": "internal: print one dead-letter message as a JSON line (called once per item by 'dlq', via a real subprocess call so every field is passed as a shell argument instead of spliced into a format string)",
+            "variables": [
+              {
+                "name": "id",
+                "text": "The message's SQS MessageId",
+                "default": ""
+              },
+              {
+                "name": "attempts",
+                "text": "ApproximateReceiveCount for this message",
+                "default": "0"
+              },
+              {
+                "name": "group",
+                "text": "The message's MessageGroupId",
+                "default": ""
+              },
+              {
+                "name": "body",
+                "text": "The message body (already valid JSON text, per aux4/queue's wire contract)",
+                "default": "null"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

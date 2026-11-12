@@ -1,0 +1,25 @@
+# Release Notes
+
+## 0.1.0 (unreleased)
+
+- Renamed the dispatch flag: `aux4/queue` now selects this plugin with `--provider sqs`; the
+  original `--storage sqs` spelling still works as a backward-compatible alias (see `aux4/queue`'s
+  own `--provider`/`--storage` change).
+- Removed `printf`/shell-format-string JSON construction from `lease` and `dlq` — `lease` now emits
+  its JSON line via the `log:` executor (never spawns a shell, so untrusted message bodies can't
+  reach a shell parser), and `dlq` dispatches a private per-item `dlq-item` command (receiving each
+  field as a real subprocess argument) instead of interpolating AWS response fields into a format
+  string.
+- `lease` now exits `4` (not `1`) when nothing is eligible, matching `aux4/queue`'s own
+  memory/repository convention.
+
+## 0.1.0 (original draft)
+
+- Initial release: Amazon SQS provider plugin for `aux4/queue`'s work-queue mode.
+- Adds `--storage sqs` to `aux4 queue create/delete/list/send/lease/ack/nack/renew/dlq`, backed by
+  real Amazon SQS FIFO queues (plus an automatic `<name>-dlq.fifo` dead-letter queue wired via an
+  SQS redrive policy).
+- Credentials, region, and endpoint are resolved entirely through the AWS CLI's own standard
+  mechanism (env vars, profile, or role); `AWS_ENDPOINT_URL` is supported for local testing against
+  an SQS-compatible server (ElasticMQ, LocalStack).
+- `renew` extends a lease's visibility timeout without acknowledging or releasing the message.
