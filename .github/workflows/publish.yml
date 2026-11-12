@@ -56,6 +56,14 @@ jobs:
   test-linux:
     needs: [lint]
     runs-on: ubuntu-latest
+    # aux4/action's test step has no Docker socket of its own (it's a container action), so
+    # ElasticMQ runs as a sibling service container on the job's network instead of being started
+    # by the test file via `docker run`.
+    services:
+      elasticmq:
+        image: softwaremill/elasticmq-native
+        ports:
+          - 19781:9324
     steps:
       - uses: actions/checkout@v6
 

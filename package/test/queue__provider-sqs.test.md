@@ -7,16 +7,17 @@ no account/token at all for a local, disposable test instance. The AWS credentia
 values ElasticMQ ignores; no real AWS account or network access is used.
 
 Requires `aux4/queue-sqs` installed alongside `aux4/queue` (adds `--provider sqs`, with `--storage sqs`
-kept as a working backward-compatible alias), Docker, and the AWS CLI.
+kept as a working backward-compatible alias) and the AWS CLI, plus an ElasticMQ server reachable at
+`http://localhost:19781`. In CI this is started as a job-level `services:` container (see
+`.github/workflows/publish.yml`) so the test step itself never has to run `docker` (the step that
+runs `aux4 test` has no Docker socket of its own). To run locally, start it yourself first:
+
+```bash
+docker run -d --name queue-sqs-test-elasticmq -p 19781:9324 softwaremill/elasticmq-native
+```
 
 ````beforeAll
-docker rm -f queue-sqs-test-elasticmq >/dev/null 2>&1
-docker run -d --name queue-sqs-test-elasticmq -p 19781:9324 softwaremill/elasticmq-native >/dev/null
-sleep 3
-````
-
-````afterAll
-docker rm -f queue-sqs-test-elasticmq >/dev/null 2>&1
+curl -sf http://localhost:19781 >/dev/null || (echo "ElasticMQ is not reachable on localhost:19781 -- start it first, see the top of this file" && exit 1)
 ````
 
 ````beforeEach
