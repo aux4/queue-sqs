@@ -176,6 +176,10 @@ main-queue-exit=4
 
 ### should deliver only one message at a time within the same group
 
+````timeout
+15000
+````
+
 ````execute
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
