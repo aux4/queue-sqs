@@ -38,6 +38,10 @@ aux4 queue delete --name wq --provider sqs >/dev/null 2>&1
 
 ### should lease a sent message
 
+````timeout
+15000
+````
+
 ````execute
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
@@ -62,6 +66,10 @@ serializing behind one shared default group).
 
 ### should not lease the same message again while its lease is active
 
+````timeout
+15000
+````
+
 ````execute
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
@@ -79,6 +87,10 @@ exit=4
 ````
 
 ### should ack a leased message, removing it for good
+
+````timeout
+15000
+````
 
 ````execute
 export AWS_ACCESS_KEY_ID=test
@@ -99,6 +111,10 @@ exit=4
 ````
 
 ### should nack a leased message for immediate redelivery, bumping attempts
+
+````timeout
+15000
+````
 
 ````execute
 export AWS_ACCESS_KEY_ID=test
@@ -202,6 +218,10 @@ second-in-group-exit=4
 
 ### should never let two concurrent leasers get the same message
 
+````timeout
+15000
+````
+
 ````execute
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
@@ -224,6 +244,10 @@ DISTINCT
 
 ### should safely handle shell metacharacters in a message body and group
 
+````timeout
+15000
+````
+
 ````execute
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
@@ -243,6 +267,10 @@ SAFE
 ````
 
 ### should safely handle a queue name containing shell metacharacters
+
+````timeout
+15000
+````
 
 ````execute
 export AWS_ACCESS_KEY_ID=test
