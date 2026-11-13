@@ -1,5 +1,14 @@
 # Release Notes
 
+## 0.1.3 (unreleased)
+
+- Hardening (BOT-016 reviewer note, not exploitable since the value is
+  SQS's own system-set numeric attribute, not attacker input): `lease`'s
+  `attempts` computation interpolated `${receiveCount}` directly into a
+  `node -e` shell string. Removed the last raw-`${}`-in-shell spot by
+  passing the value as a real `node` argv (`value(receiveCount)` ->
+  `process.argv[1]`) instead. Same 0-indexed `attempts` output as before.
+
 ## 0.1.2 (unreleased)
 
 - Fixed a real bug: `lease`'s `attempts` field reported SQS's raw (1-indexed)
